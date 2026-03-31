@@ -1,0 +1,265 @@
+================================================================
+         INGNET VPN — ПОЛНАЯ ИНСТРУКЦИЯ СБОРКИ APK
+================================================================
+
+ШАГ 1 — СКАЧАТЬ АРХИВ
+----------------------------------------------------------------
+Скачай файл ingnet_vpn.tar.gz и положи его в удобную папку,
+например: ~/Projects/
+
+
+ШАГ 2 — РАСПАКОВАТЬ АРХИВ
+----------------------------------------------------------------
+Открой терминал и выполни:
+
+    cd ~/Projects
+    tar -xzf ingnet_vpn.tar.gz
+    cd ingnet_vpn
+
+
+ШАГ 3 — УСТАНОВИТЬ JAVA 17
+----------------------------------------------------------------
+Ubuntu / Debian / WSL:
+
+    sudo apt-get update
+    sudo apt-get install -y openjdk-17-jdk
+
+macOS (Homebrew):
+
+    brew install openjdk@17
+
+Проверка версии:
+
+    java -version
+    # Должно показать: openjdk version "17.x.x"
+
+Если установлена другая версия Java — принудительно выбери 17:
+
+    Linux:
+    export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+    export PATH=$JAVA_HOME/bin:$PATH
+
+    macOS:
+    export JAVA_HOME=/usr/local/opt/openjdk@17
+    export PATH=$JAVA_HOME/bin:$PATH
+
+
+ШАГ 4 — УСТАНОВИТЬ FLUTTER 3.22 (stable)
+----------------------------------------------------------------
+    cd ~
+    git clone https://github.com/flutter/flutter.git -b stable --depth 1
+    export PATH=~/flutter/bin:$PATH
+
+Чтобы PATH сохранялся после перезапуска терминала, добавь строку
+в ~/.bashrc или ~/.zshrc:
+
+    echo 'export PATH=~/flutter/bin:$PATH' >> ~/.bashrc
+    source ~/.bashrc
+
+Проверка:
+
+    flutter --version
+    # Должно показать: Flutter 3.22.x, channel stable
+
+
+ШАГ 5 — ПРИНЯТЬ ЛИЦЕНЗИИ ANDROID
+----------------------------------------------------------------
+    flutter doctor --android-licenses
+
+    На каждый вопрос нажимай "y" и Enter.
+
+
+ШАГ 6 — ПРОВЕРИТЬ ОКРУЖЕНИЕ
+----------------------------------------------------------------
+    flutter doctor
+
+Должны быть зелёные галочки у:
+    [✓] Flutter
+    [✓] Android toolchain
+    [✓] Android Studio / cmdline-tools
+
+Если Android SDK не найден, установи его:
+
+    export ANDROID_HOME=~/android-sdk
+    export PATH=$ANDROID_HOME/platform-tools:$ANDROID_HOME/tools/bin:$PATH
+
+    sdkmanager "platform-tools"
+    sdkmanager "platforms;android-34"
+    sdkmanager "build-tools;34.0.0"
+    sdkmanager "ndk;25.1.8937393"
+
+
+ШАГ 7 — СОЗДАТЬ ФАЙЛ local.properties
+----------------------------------------------------------------
+    cd ~/Projects/ingnet_vpn/android
+    cp local.properties.template local.properties
+
+Открой local.properties любым текстовым редактором и пропиши
+пути к твоим папкам:
+
+    flutter.sdk=/home/ВАШ_ЛОГИН/flutter
+    sdk.dir=/home/ВАШ_ЛОГИН/android-sdk
+
+ПРИМЕЧАНИЕ: Если переменная ANDROID_HOME уже задана в системе,
+Flutter создаст local.properties сам при первом запуске —
+тогда этот шаг можно пропустить.
+
+
+ШАГ 8 — ПОЛУЧИТЬ ЗАВИСИМОСТИ FLUTTER
+----------------------------------------------------------------
+    cd ~/Projects/ingnet_vpn
+    flutter pub get
+
+Все пакеты скачаются автоматически. Должно завершиться
+без ошибок.
+
+
+ШАГ 9 — СОБРАТЬ APK
+----------------------------------------------------------------
+Debug APK (для быстрого теста, не требует подписи):
+
+    flutter build apk --debug
+
+Release APK (оптимизированный, для установки на телефон):
+
+    flutter build apk --release --split-per-abi
+
+Сборка занимает 3–10 минут в первый раз (Gradle скачивает
+зависимости). Последующие сборки быстрее.
+
+
+ШАГ 10 — НАЙТИ ГОТОВЫЙ APK
+----------------------------------------------------------------
+После сборки файлы находятся здесь:
+
+    ingnet_vpn/build/app/outputs/flutter-apk/
+
+Файлы:
+    app-arm64-v8a-release.apk    — для большинства современных
+                                   телефонов (2015 года и новее)
+    app-armeabi-v7a-release.apk  — для старых / бюджетных
+                                   телефонов
+    app-x86_64-release.apk       — для эмулятора
+
+Для обычной установки на телефон бери app-arm64-v8a-release.apk
+
+
+ШАГ 11 — УСТАНОВИТЬ НА ТЕЛЕФОН
+----------------------------------------------------------------
+ВАРИАНТ А — через USB кабель (adb):
+
+    adb install build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+
+ВАРИАНТ Б — вручную через файловый менеджер:
+    1. Скопируй APK файл на телефон (через USB или мессенджер)
+    2. В настройках телефона:
+       Безопасность → разреши "Установку из неизвестных источников"
+    3. Открой APK на телефоне через файловый менеджер
+    4. Нажми "Установить"
+
+
+================================================================
+         ЧАСТЫЕ ОШИБКИ И РЕШЕНИЯ
+================================================================
+
+ОШИБКА: NDK not found / NDK location not found
+РЕШЕНИЕ:
+    sdkmanager "ndk;25.1.8937393"
+
+----------------------------------------------------------------
+ОШИБКА: Gradle build failed / Could not determine Java version
+РЕШЕНИЕ: Убедись что активна именно Java 17
+    java -version
+    # Если показывает не 17 — выполни export JAVA_HOME (шаг 3)
+
+----------------------------------------------------------------
+ОШИБКА: flutter.sdk not set in local.properties
+РЕШЕНИЕ: Создай файл android/local.properties (шаг 7)
+
+----------------------------------------------------------------
+ОШИБКА: License not accepted
+РЕШЕНИЕ:
+    flutter doctor --android-licenses
+    # Жмёшь "y" на все вопросы
+
+----------------------------------------------------------------
+ОШИБКА: SDK location not found
+РЕШЕНИЕ: Задай ANDROID_HOME или sdk.dir в local.properties
+
+----------------------------------------------------------------
+ОШИБКА: compileSdk 34 requires a newer version of the Android...
+РЕШЕНИЕ:
+    sdkmanager "platforms;android-34"
+
+----------------------------------------------------------------
+ОШИБКА: Gradle версия несовместима
+РЕШЕНИЕ: В файле android/gradle/wrapper/gradle-wrapper.properties
+убедись что строка выглядит так:
+    distributionUrl=https\://services.gradle.org/distributions/gradle-8.3-bin.zip
+
+----------------------------------------------------------------
+ОШИБКА: minSdkVersion / Minimum supported Gradle version
+РЕШЕНИЕ: Убедись что в android/app/build.gradle:
+    minSdkVersion 22
+    compileSdk 34
+    ndkVersion "25.1.8937393"
+
+================================================================
+         ВЕРСИИ КОМПОНЕНТОВ ДЛЯ СБОРКИ
+================================================================
+
+    Flutter SDK          3.22.x (stable channel)
+    Dart SDK             3.4.x
+    Java JDK             17 (OpenJDK или Eclipse Temurin)
+    Android SDK API      34
+    NDK                  25.1.8937393
+    Gradle               8.3
+    Android Gradle Plugin 8.3.2
+    Kotlin               1.9.22
+    minSdkVersion        22  (Android 5.1+)
+    applicationId        com.ingnet.vpn
+
+================================================================
+         СТРУКТУРА ПРОЕКТА (для справки)
+================================================================
+
+    ingnet_vpn/
+    ├── pubspec.yaml                      — зависимости Flutter
+    ├── android/
+    │   ├── app/
+    │   │   ├── build.gradle              — конфиг сборки Android
+    │   │   └── src/main/
+    │   │       ├── AndroidManifest.xml   — права приложения
+    │   │       ├── kotlin/.../MainActivity.kt
+    │   │       └── res/mipmap-*/         — иконки приложения
+    │   ├── build.gradle
+    │   ├── gradle.properties
+    │   ├── local.properties.template     — ПЕРЕИМЕНУЙ в local.properties
+    │   └── key.properties.template       — для подписи (опционально)
+    └── lib/
+        ├── main.dart                     — точка входа
+        ├── core/vpn_provider.dart        — вся логика VPN
+        ├── models/
+        │   ├── server_model.dart
+        │   └── theme_model.dart          — 10 тем оформления
+        ├── screens/home_screen.dart      — главный экран
+        ├── widgets/
+        │   ├── connect_button.dart       — кнопка подключения
+        │   ├── server_list.dart          — список серверов
+        │   ├── latency_modal.dart        — тест задержки
+        │   ├── settings_modal.dart       — настройки
+        │   ├── sidebar_drawer.dart       — боковое меню
+        │   ├── theme_picker.dart         — выбор темы
+        │   └── traffic_counter.dart      — счётчик трафика
+        └── utils/
+            ├── format_bytes.dart
+            └── scanlines_painter.dart
+
+================================================================
+         ИСТОЧНИК СЕРВЕРОВ
+================================================================
+
+    URL: https://raw.githubusercontent.com/INGNET06/INGNET/refs/heads/main/INGNETVPN.txt
+    Telegram: https://t.me/INGNET06
+
+================================================================
